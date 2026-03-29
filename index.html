@@ -1,62 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>远致集团 - Excel 数据比对工具</title>
+    <meta charset="UTF-8">
+    <title>Excel 智能核对助手</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; color: #333; }
-        .container { display: flex; gap: 20px; margin-bottom: 20px; }
-        .box { border: 2px dashed #ccc; padding: 20px; flex: 1; text-align: center; border-radius: 8px; }
-        #result { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        #result td, #result th { border: 1px solid #ddd; padding: 8px; }
-        .diff { background-color: #ffcccc; color: red; font-weight: bold; }
-        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        body { font-family: "Helvetica Neue", Helvetica, Arial, "Microsoft YaHei", sans-serif; padding: 40px; background: #f8f9fa; color: #333; }
+        .card { background: white; padding: 35px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: auto; }
+        .title-section { text-align: center; margin-bottom: 30px; }
+        .title { color: #1a73e8; font-size: 28px; margin-bottom: 10px; }
+        .subtitle { color: #666; font-size: 14px; }
+        .upload-area { display: flex; gap: 20px; margin: 30px 0; }
+        .upload-box { flex: 1; border: 2px dashed #dadce0; padding: 25px; border-radius: 12px; text-align: center; background: #fff; transition: all 0.3s; }
+        .upload-box:hover { border-color: #1a73e8; background: #f1f8fe; }
+        input[type="file"] { margin-top: 10px; width: 100%; }
+        button { width: 100%; padding: 16px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #1557b0; }
+        #res { margin-top: 30px; overflow-x: auto; }
+        #result-table { width: 100%; border-collapse: collapse; background: white; font-size: 14px; }
+        #result-table th { background: #f1f3f4; color: #5f6368; font-weight: 500; }
+        #result-table td, #result-table th { border: 1px solid #e8eaed; padding: 12px; text-align: left; }
+        .diff { background-color: #fce8e6; color: #d93025; font-weight: bold; }
+        .row-num { color: #70757a; width: 60px; text-align: center !important; }
     </style>
 </head>
 <body>
-    <h2>📊 远致集团 Excel 智能比对助手</h2>
-    <p>说明：请分别上传两个表格，系统将自动对比第一个工作表（Sheet）的内容差异。</p>
-    <div class="container">
-        <div class="box">
-            <h3>标准旧表</h3>
-            <input type="file" id="file1" accept=".xlsx, .xls">
+    <div class="card">
+        <div class="title-section">
+            <h1 class="title">📊 Excel 数据智能比对助手</h1>
+            <p class="subtitle">快速核对两个表格间的差异，自动高亮显示不一致的内容</p>
         </div>
-        <div class="box">
-            <h3>待核对新表</h3>
-            <input type="file" id="file2" accept=".xlsx, .xls">
+        
+        <div class="upload-area">
+            <div class="upload-box">
+                <strong>📁 标准原表 (Base)</strong>
+                <input type="file" id="f1" accept=".xlsx, .xls">
+            </div>
+            <div class="upload-box">
+                <strong>📁 对比新表 (Compare)</strong>
+                <input type="file" id="f2" accept=".xlsx, .xls">
+            </div>
         </div>
+        
+        <button onclick="compare()">立即开始核对</button>
+        <div id="res"></div>
     </div>
-    <button onclick="compareFiles()">开始比对数据</button>
-    <div id="out"></div>
 
     <script>
-        async function fileToJSON(file) {
-            const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data);
-            return XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1});
+        async function load(f){ 
+            const d = await f.arrayBuffer(); 
+            const wb = XLSX.read(d); 
+            // 默认比对第一个工作表
+            return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1}); 
         }
 
-        async function compareFiles() {
-            const f1 = document.getElementById('file1').files[0];
-            const f2 = document.getElementById('file2').files[0];
-            if(!f1 || !f2) return alert("请同时上传两个文件！");
-
-            const data1 = await fileToJSON(f1);
-            const data2 = await fileToJSON(f2);
+        async function compare(){
+            const btn = document.querySelector('button');
+            const file1 = document.getElementById('f1').files[0]; 
+            const file2 = document.getElementById('f2').files[0];
             
-            let html = '<table id="result"><thead><tr><th>行号</th><th>旧表内容 (标准)</th><th>新表内容 (差异)</th></tr></thead><tbody>';
-            const maxRows = Math.max(data1.length, data2.length);
+            if(!file1 || !file2) return alert("请先上传两个 Excel 文件！");
+            
+            btn.innerText = "正在核对中...";
+            const d1 = await load(file1); 
+            const d2 = await load(file2);
+            
+            let h = '<table id="result-table"><tr><th class="row-num">行号</th><th>原表内容</th><th>新表差异内容</th></tr>';
+            const max = Math.max(d1.length, d2.length);
+            let diffCount = 0;
 
-            for(let i=0; i<maxRows; i++) {
-                const row1 = JSON.stringify(data1[i] || "");
-                const row2 = JSON.stringify(data2[i] || "");
-                if(row1 !== row2) {
-                    html += `<tr><td>第 ${i+1} 行</td><td>${row1}</td><td class="diff">${row2}</td></tr>`;
+            for(let i=0; i<max; i++){
+                const s1 = JSON.stringify(d1[i]||"");
+                const s2 = JSON.stringify(d2[i]||"");
+                if(s1 !== s2) {
+                    diffCount++;
+                    h += `<tr><td class="row-num">${i+1}</td><td>${s1}</td><td class="diff">${s2}</td></tr>`;
                 }
             }
-            html += '</tbody></table>';
-            document.getElementById('out').innerHTML = data1.length === data2.length && html.indexOf('class="diff"') === -1 ? "✅ 数据完全一致！" : html;
+            
+            btn.innerText = "立即开始核对";
+            if(diffCount > 0) {
+                document.getElementById('res').innerHTML = h + '</table>';
+            } else {
+                document.getElementById('res').innerHTML = '<div style="text-align:center; padding:20px; color:#1e8e3e; font-weight:bold;">✅ 经比对，两个表格数据完全一致！</div>';
+            }
         }
     </script>
 </body>
