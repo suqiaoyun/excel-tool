@@ -1,247 +1,93 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocCompare Pro - 左右同步对比</title>
-    
+    <title>Excel 数据核对助手</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
-
     <style>
-        :root {
-            --google-blue: #1a73e8;
-            --google-gray: #f8f9fa;
-            --border-color: #dadce0;
-            --text-main: #3c4043;
-            --diff-add: #e6ffec;
-            --diff-remove: #ffebe9;
-            --line-height: 24px;
-        }
-
-        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; color: var(--text-main); background: #fff; overflow-x: hidden; }
-        header { padding: 12px 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; background: #fff; position: sticky; top: 0; z-index: 100; }
-        .logo { font-size: 20px; color: #5f6368; font-weight: 500; }
-        
-        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
-        
-        /* 顶部控制栏 */
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        .mode-selector { display: flex; background: var(--google-gray); border-radius: 8px; padding: 4px; }
-        .btn-mode { padding: 6px 16px; border: none; background: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: 0.2s; }
-        .btn-mode.active { background: #fff; color: var(--google-blue); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-
-        /* 上传区 */
-        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-        .drop-zone { 
-            height: 100px; border: 2px dashed var(--border-color); border-radius: 8px; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: var(--google-gray); cursor: pointer; position: relative;
-        }
-        .drop-zone:hover { border-color: var(--google-blue); }
-        .drop-zone p { margin: 5px 0 0; font-size: 13px; color: #70757a; }
-        .file-label { font-weight: bold; color: var(--google-blue); font-size: 12px; margin-top: 4px; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-        /* 左右对比区域 */
-        .compare-wrapper { 
-            display: grid; grid-template-columns: 1fr 1fr; 
-            border: 1px solid var(--border-color); border-radius: 8px;
-            background: #fff; height: calc(100vh - 320px); min-height: 400px;
-        }
-        .diff-pane { 
-            overflow-y: auto; overflow-x: auto; padding: 10px 0; 
-            font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: var(--line-height);
-            scrollbar-width: thin;
-        }
-        .diff-pane:first-child { border-right: 1px solid var(--border-color); }
-        
-        /* 行样式 */
-        .diff-line { display: flex; width: 100%; min-width: max-content; }
-        .line-num { width: 35px; color: #bdc1c6; text-align: right; padding-right: 10px; user-select: none; flex-shrink: 0; border-right: 1px solid #eee; margin-right: 10px; }
-        .line-content { flex-grow: 1; padding-right: 15px; white-space: pre; }
-        
-        .added { background-color: var(--diff-add); }
-        .removed { background-color: var(--diff-remove); }
-        .empty-line { background-color: #fafafa; color: transparent; }
-
-        .action-btn { 
-            background: var(--google-blue); color: white; border: none; 
-            padding: 10px 30px; border-radius: 4px; cursor: pointer; font-weight: 500;
-        }
+        body { font-family: "Helvetica Neue", Helvetica, Arial, "Microsoft YaHei", sans-serif; padding: 40px; background: #f8f9fa; color: #333; }
+        .card { background: white; padding: 35px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: auto; }
+        .title-section { text-align: center; margin-bottom: 30px; }
+        .title { color: #1a73e8; font-size: 28px; margin-bottom: 10px; }
+        .subtitle { color: #666; font-size: 14px; }
+        .upload-area { display: flex; gap: 20px; margin: 30px 0; }
+        .upload-box { flex: 1; border: 2px dashed #dadce0; padding: 25px; border-radius: 12px; text-align: center; background: #fff; transition: all 0.3s; }
+        .upload-box:hover { border-color: #1a73e8; background: #f1f8fe; }
+        input[type="file"] { margin-top: 10px; width: 100% !important; }
+        button { width: 100%; padding: 16px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #1557b0; }
+        #res { margin-top: 30px; overflow-x: auto; }
+        #result-table { width: 100%; border-collapse: collapse; background: white; font-size: 14px; }
+        #result-table th { background: #f1f3f4; color: #5f6368; font-weight: 500; }
+        #result-table td, #result-table th { border: 1px solid #e8eaed; padding: 12px; text-align: left; }
+        .diff { background-color: #fce8e6; color: #d93025; font-weight: bold; }
+        .row-num { color: #70757a; width: 60px; text-align: center !important; }
     </style>
 </head>
 <body>
-
-<header><div class="logo">Doc<b>Compare</b> <span style="font-size: 12px; font-weight: normal;">左右对比版</span></div></header>
-
-<div class="container">
-    <div class="toolbar">
-        <div class="mode-selector">
-            <button id="modeText" class="btn-mode active">文本差异 (左右对照)</button>
-            <button id="modeData" class="btn-mode">数据差异 (Excel专用)</button>
+    <div class="card">
+        <div class="title-section">
+            <h1 class="title">📊 Excel 数据智能核对助手</h1>
+            <p class="subtitle">上传两个表格，系统将自动对比第一个工作表（Sheet）的内容差异</p>
         </div>
-        <button class="action-btn" id="runCompare">开始对比</button>
+        
+        <div class="upload-area">
+            <div class="upload-box">
+                <strong>📁 标准旧表 (Base)</strong><br>
+                <input type="file" id="f1" accept=".xlsx, .xls">
+            </div>
+            <div class="upload-box">
+                <strong>📁 待核对新表 (Compare)</strong><br>
+                <input type="file" id="f2" accept=".xlsx, .xls">
+            </div>
+        </div>
+        
+        <button onclick="compare()">开始核对数据</button>
+        <div id="res"></div>
     </div>
 
-    <div class="upload-grid">
-        <div class="drop-zone" id="zone1">
-            <input type="file" id="input1" hidden accept=".xlsx, .xls, .docx, .pdf">
-            <p>📄 点击上传文件 A</p>
-            <div id="info1" class="file-label"></div>
-        </div>
-        <div class="drop-zone" id="zone2">
-            <input type="file" id="input2" hidden accept=".xlsx, .xls, .docx, .pdf">
-            <p>📄 点击上传文件 B</p>
-            <div id="info2" class="file-label"></div>
-        </div>
-    </div>
-
-    <div class="compare-wrapper" id="compareArea">
-        <div class="diff-pane" id="paneLeft"><div style="color:#9aa0a6; padding:20px;">等待左侧文件...</div></div>
-        <div class="diff-pane" id="paneRight"><div style="color:#9aa0a6; padding:20px;">等待右侧文件...</div></div>
-    </div>
-</div>
-
-<script>
-    // 初始化 PDF.js
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
-    let files = { f1: null, f2: null };
-    let compareMode = 'text';
-
-    // 绑定上传事件
-    [1, 2].forEach(num => {
-        const zone = document.getElementById(`zone${num}`);
-        const input = document.getElementById(`input${num}`);
-        zone.onclick = () => input.click();
-        input.onchange = (e) => {
-            files[`f${num}`] = e.target.files[0];
-            document.getElementById(`info${num}`).innerText = e.target.files[0].name;
-        };
-    });
-
-    // 模式切换
-    document.getElementById('modeText').onclick = () => { compareMode = 'text'; updateUI(); };
-    document.getElementById('modeData').onclick = () => { compareMode = 'data'; updateUI(); };
-
-    function updateUI() {
-        document.getElementById('modeText').classList.toggle('active', compareMode === 'text');
-        document.getElementById('modeData').classList.toggle('active', compareMode === 'data');
-    }
-
-    // 提取内容引擎
-    async function parseFile(file) {
-        if (!file) return null;
-        const name = file.name.toLowerCase();
-        try {
-            if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
-                const wb = XLSX.read(await file.arrayBuffer());
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                return { type: 'excel', raw: ws, text: XLSX.utils.sheet_to_txt(ws) };
-            }
-            if (name.endsWith('.docx')) {
-                const res = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-                return { type: 'word', text: res.value };
-            }
-            if (name.endsWith('.pdf')) {
-                const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
-                let t = "";
-                for(let i=1; i<=pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    t += content.items.map(s => s.str).join(" ") + "\n";
-                }
-                return { type: 'pdf', text: t };
-            }
-        } catch (e) { alert("解析失败: " + e.message); }
-        return null;
-    }
-
-    // 执行对比
-    document.getElementById('runCompare').onclick = async () => {
-        if (!files.f1 || !files.f2) return alert("请先上传两个文件");
-        const d1 = await parseFile(files.f1);
-        const d2 = await parseFile(files.f2);
-
-        if (compareMode === 'text') {
-            renderSplitDiff(d1.text, d2.text);
-        } else {
-            renderDataDiff(d1, d2);
+    <script>
+        async function load(f){ 
+            const d = await f.arrayBuffer(); 
+            const wb = XLSX.read(d); 
+            return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1}); 
         }
-    };
 
-    // 左右分屏渲染逻辑
-    function renderSplitDiff(t1, t2) {
-        const diff = Diff.diffLines(t1, t2);
-        const pL = document.getElementById('paneLeft');
-        const pR = document.getElementById('paneRight');
-        pL.innerHTML = ''; pR.innerHTML = '';
+        async function compare(){
+            const btn = document.querySelector('button');
+            const file1 = document.getElementById('f1').files[0]; 
+            const file2 = document.getElementById('f2').files[0];
+            
+            if(!file1 || !file2) return alert("请先上传两个 Excel 文件！");
+            
+            btn.innerText = "正在比对中...";
+            try {
+                const d1 = await load(file1); 
+                const d2 = await load(file2);
+                
+                let h = '<table id="result-table"><tr><th class="row-num">行号</th><th>旧表内容</th><th>新表差异</th></tr>';
+                const max = Math.max(d1.length, d2.length);
+                let diffCount = 0;
 
-        let lNum = 1, rNum = 1;
-
-        diff.forEach(part => {
-            const lines = part.value.split('\n');
-            if (lines[lines.length - 1] === '') lines.pop();
-
-            lines.forEach(line => {
-                const rowL = createLine(line);
-                const rowR = createLine(line);
-
-                if (part.added) {
-                    rowL.className = 'diff-line empty-line';
-                    rowL.innerHTML = `<span class="line-num"> </span><span class="line-content"> </span>`;
-                    rowR.classList.add('added');
-                    rowR.firstChild.innerText = rNum++;
-                    pL.appendChild(rowL); pR.appendChild(rowR);
-                } else if (part.removed) {
-                    rowR.className = 'diff-line empty-line';
-                    rowR.innerHTML = `<span class="line-num"> </span><span class="line-content"> </span>`;
-                    rowL.classList.add('removed');
-                    rowL.firstChild.innerText = lNum++;
-                    pL.appendChild(rowL); pR.appendChild(rowR);
+                for(let i=0; i<max; i++){
+                    const s1 = JSON.stringify(d1[i]||"");
+                    const s2 = JSON.stringify(d2[i]||"");
+                    if(s1 !== s2) {
+                        diffCount++;
+                        h += `<tr><td class="row-num">${i+1}</td><td>${s1}</td><td class="diff">${s2}</td></tr>`;
+                    }
+                }
+                
+                if(diffCount > 0) {
+                    document.getElementById('res').innerHTML = h + '</table>';
                 } else {
-                    rowL.firstChild.innerText = lNum++;
-                    rowR.firstChild.innerText = rNum++;
-                    pL.appendChild(rowL); pR.appendChild(rowR);
+                    document.getElementById('res').innerHTML = '<div style="text-align:center; padding:20px; color:#1e8e3e; font-weight:bold;">✅ 经比对，数据完全一致！</div>';
                 }
-            });
-        });
-
-        // 同步滚动
-        pL.onscroll = () => pR.scrollTop = pL.scrollTop;
-        pR.onscroll = () => pL.scrollTop = pR.scrollTop;
-    }
-
-    function createLine(content) {
-        const div = document.createElement('div');
-        div.className = 'diff-line';
-        div.innerHTML = `<span class="line-num"></span><span class="line-content">${content || ' '}</span>`;
-        return div;
-    }
-
-    function renderDataDiff(d1, d2) {
-        if (d1.type !== 'excel' || d2.type !== 'excel') return alert("数据模式仅支持 Excel");
-        const s1 = XLSX.utils.sheet_to_json(d1.raw, {header:1});
-        const s2 = XLSX.utils.sheet_to_json(d2.raw, {header:1});
-        const pL = document.getElementById('paneLeft');
-        const pR = document.getElementById('paneRight');
-        pL.innerHTML = '<div style="padding:10px"><b>文件 A 数据节点</b></div>';
-        pR.innerHTML = '<div style="padding:10px"><b>文件 B 差异点</b></div>';
-
-        s1.forEach((row, i) => {
-            row.forEach((cell, j) => {
-                const val2 = (s2[i] && s2[i][j]) ? s2[i][j] : "";
-                if (String(cell) !== String(val2)) {
-                    const item = document.createElement('div');
-                    item.style.padding = "2px 10px";
-                    item.innerHTML = `📍 [行${i+1},列${j+1}]: <span class="removed">${cell}</span> -> <span class="added">${val2}</span>`;
-                    pR.appendChild(item);
-                }
-            });
-        });
-    }
-</script>
+            } catch(e) {
+                alert("读取失败，请检查文件格式是否正确。");
+            }
+            btn.innerText = "开始核对数据";
+        }
+    </script>
 </body>
 </html>
